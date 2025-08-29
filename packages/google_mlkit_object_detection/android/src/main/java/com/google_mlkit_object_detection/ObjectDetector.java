@@ -7,7 +7,6 @@ import androidx.annotation.NonNull;
 
 import com.google.mlkit.common.model.CustomRemoteModel;
 import com.google.mlkit.common.model.LocalModel;
-import com.google.mlkit.linkfirebase.FirebaseModelSource;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.objects.DetectedObject;
 import com.google.mlkit.vision.objects.ObjectDetection;
@@ -78,13 +77,6 @@ public class ObjectDetector implements MethodChannel.MethodCallHandler {
             } else if (type.equals("local")) {
                 CustomObjectDetectorOptions detectorOptions = getLocalOptions(options);
                 objectDetector = ObjectDetection.getClient(detectorOptions);
-            } else if (type.equals("remote")) {
-                CustomObjectDetectorOptions detectorOptions = getRemoteOptions(options);
-                if (detectorOptions == null) {
-                    result.error("Error Model has not been downloaded yet", "Model has not been downloaded yet", "Model has not been downloaded yet");
-                    return;
-                }
-                objectDetector = ObjectDetection.getClient(detectorOptions);
             } else {
                 String error = "Invalid model type: " + type;
                 result.error(type, error, error);
@@ -149,34 +141,6 @@ public class ObjectDetector implements MethodChannel.MethodCallHandler {
         return builder.build();
     }
 
-    private CustomObjectDetectorOptions getRemoteOptions(Map<String, Object> options) {
-        int mode = (int) options.get("mode");
-        mode = mode == 0 ?
-                CustomObjectDetectorOptions.STREAM_MODE :
-                CustomObjectDetectorOptions.SINGLE_IMAGE_MODE;
-        boolean classify = (boolean) options.get("classify");
-        boolean multiple = (boolean) options.get("multiple");
-        double threshold = (double) options.get("threshold");
-        int maxLabels = (int) options.get("maxLabels");
-        String name = (String) options.get("modelName");
-
-        FirebaseModelSource firebaseModelSource = new FirebaseModelSource.Builder(name)
-                .build();
-        CustomRemoteModel remoteModel = new CustomRemoteModel.Builder(firebaseModelSource)
-                .build();
-        if (!genericModelManager.isModelDownloaded(remoteModel)) {
-            return null;
-        }
-
-        CustomObjectDetectorOptions.Builder builder = new CustomObjectDetectorOptions.Builder(remoteModel);
-        builder.setDetectorMode(mode);
-        if (classify) builder.enableClassification();
-        if (multiple) builder.enableMultipleObjects();
-        builder.setMaxPerObjectLabelCount(maxLabels);
-        builder.setClassificationConfidenceThreshold((float) threshold);
-        return builder.build();
-    }
-
     private void addData(Map<String, Object> addTo,
                          Integer trackingId,
                          Rect rect,
@@ -216,10 +180,5 @@ public class ObjectDetector implements MethodChannel.MethodCallHandler {
     }
 
     private void manageModel(MethodCall call, final MethodChannel.Result result) {
-        FirebaseModelSource firebaseModelSource = new FirebaseModelSource.Builder(call.argument("model"))
-                .build();
-        CustomRemoteModel model = new CustomRemoteModel.Builder(firebaseModelSource)
-                .build();
-        genericModelManager.manageModel(model, call, result);
     }
 }
