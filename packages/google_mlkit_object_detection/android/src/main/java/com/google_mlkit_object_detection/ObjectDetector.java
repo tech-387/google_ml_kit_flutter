@@ -57,7 +57,7 @@ public class ObjectDetector implements MethodChannel.MethodCallHandler {
     }
 
     private void handleDetection(MethodCall call, final MethodChannel.Result result) {
-        Map<String, Object> imageData = (Map<String, Object>) call.argument("imageData");
+        Map<String, Object> imageData = call.argument("imageData");
         InputImage inputImage = InputImageConverter.getInputImageFromData(imageData, context, result);
         if (inputImage == null) return;
 
@@ -85,6 +85,14 @@ public class ObjectDetector implements MethodChannel.MethodCallHandler {
             instances.put(id, objectDetector);
         }
 
+        startObjectDetection(objectDetector, inputImage, result);
+    }
+
+    private void startObjectDetection(
+            com.google.mlkit.vision.objects.ObjectDetector objectDetector,
+            InputImage inputImage,
+            MethodChannel.Result result
+    ) {
         objectDetector.process(inputImage).addOnSuccessListener(detectedObjects -> {
             List<Map<String, Object>> objects = new ArrayList<>();
             for (DetectedObject detectedObject : detectedObjects) {
