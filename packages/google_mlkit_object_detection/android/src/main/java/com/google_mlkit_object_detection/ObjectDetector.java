@@ -7,7 +7,6 @@ import androidx.annotation.NonNull;
 
 import com.google.mlkit.common.model.CustomRemoteModel;
 import com.google.mlkit.common.model.LocalModel;
-import com.google.mlkit.linkfirebase.FirebaseModelSource;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.objects.DetectedObject;
 import com.google.mlkit.vision.objects.ObjectDetection;
@@ -78,56 +77,6 @@ public class ObjectDetector implements MethodChannel.MethodCallHandler {
             } else if (type.equals("local")) {
                 CustomObjectDetectorOptions detectorOptions = getLocalOptions(options);
                 objectDetector = ObjectDetection.getClient(detectorOptions);
-            } else if (type.equals("remote")) {
-                int mode = (int) options.get("mode");
-                int finalMode = mode == 0 ?
-                        CustomObjectDetectorOptions.STREAM_MODE :
-                        CustomObjectDetectorOptions.SINGLE_IMAGE_MODE;
-                boolean classify = (boolean) options.get("classify");
-                boolean multiple = (boolean) options.get("multiple");
-                double threshold = (double) options.get("threshold");
-                int maxLabels = (int) options.get("maxLabels");
-                String name = (String) options.get("modelName");
-
-                FirebaseModelSource firebaseModelSource = new FirebaseModelSource.Builder(name)
-                        .build();
-                CustomRemoteModel remoteModel = new CustomRemoteModel.Builder(firebaseModelSource)
-                        .build();
-
-                genericModelManager.isModelDownloaded(
-                        remoteModel,
-                        new GenericModelManager.CheckModelIsDownloadedCallback() {
-                            @Override
-                            public void onCheckResult(Boolean isDownloaded) {
-                                if (!isDownloaded) {
-                                    result.error("Error Model has not been downloaded yet", "Model has not been downloaded yet", "Model has not been downloaded yet");
-                                    return;
-                                }
-
-                                CustomObjectDetectorOptions.Builder builder = new CustomObjectDetectorOptions.Builder(remoteModel)
-                                        .setDetectorMode(finalMode)
-                                        .setMaxPerObjectLabelCount(maxLabels)
-                                        .setClassificationConfidenceThreshold((float) threshold);
-                                if (classify) builder.enableClassification();
-                                if (multiple) builder.enableMultipleObjects();
-
-                                CustomObjectDetectorOptions customObjectDetectorOptions = builder.build();
-
-                                startObjectDetection(
-                                        ObjectDetection.getClient(customObjectDetectorOptions),
-                                        inputImage,
-                                        result
-                                );
-                            }
-
-                            @Override
-                            public void onError(Exception e) {
-                                result.error("Model download check failed", e.getMessage(), e);
-                            }
-                        }
-                );
-
-                return;
             } else {
                 String error = "Invalid model type: " + type;
                 result.error(type, error, error);
@@ -239,10 +188,5 @@ public class ObjectDetector implements MethodChannel.MethodCallHandler {
     }
 
     private void manageModel(MethodCall call, final MethodChannel.Result result) {
-        FirebaseModelSource firebaseModelSource = new FirebaseModelSource.Builder(call.argument("model"))
-                .build();
-        CustomRemoteModel model = new CustomRemoteModel.Builder(firebaseModelSource)
-                .build();
-        genericModelManager.manageModel(model, call, result);
     }
 }
